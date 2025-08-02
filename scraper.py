@@ -41,7 +41,7 @@ def scrape_horse_odds():
         print(f"Se encontraron {len(race_links)} carreras.")
 
         # Itera sobre una copia de los enlaces
-        for link in race_links[:5]: # Limito a 5 para el ejemplo
+        for link in race_links[:5]: 
             driver.get(link)
             
             WebDriverWait(driver, 20).until(
