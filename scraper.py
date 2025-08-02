@@ -6,11 +6,13 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 
 def setup_driver():
-    """Configura el driver de Selenium con el modo headless mejorado."""
+    """Configura el driver con camuflaje mejorado."""
     options = webdriver.ChromeOptions()
-    
-    # --- CAMBIO CLAVE: Usar el nuevo modo headless ---
     options.add_argument("--headless=new")
+    
+    # --- NUEVO CAMUFLAJE: User-Agent ---
+    # Finge ser un navegador Chrome normal en Windows.
+    options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36')
     
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -24,13 +26,13 @@ def setup_driver():
     return driver
 
 def scrape_horse_odds():
-    """Scraper con camuflaje y depuración de HTML."""
+    """Scraper final con el selector corregido."""
     log_messages = []
     all_odds_data = []
     driver = None
 
     try:
-        log_messages.append("Iniciando el driver de Selenium (modo camuflado)...")
+        log_messages.append("Iniciando el driver de Selenium (modo camuflado v2)...")
         driver = setup_driver()
         log_messages.append("Driver iniciado correctamente.")
 
@@ -41,36 +43,38 @@ def scrape_horse_odds():
 
         try:
             log_messages.append("Buscando el botón de aceptar cookies...")
-            cookie_button = WebDriverWait(driver, 5).until( # Reducimos la espera a 5s
+            cookie_button = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.ID, "ens-accept-all-button"))
             )
             cookie_button.click()
             log_messages.append("✅ Cookies aceptadas.")
-            time.sleep(1)
+            time.sleep(2) # Pausa un poco más larga tras aceptar
         except Exception:
             log_messages.append("ℹ️ No se encontró el banner de cookies. Continuando...")
         
-        log_messages.append("Esperando por los enlaces de las carreras...")
+        # --- SELECTOR CORREGIDO ---
+        # Este es el cambio más importante. Ahora buscamos el enlace dentro del <li>
+        log_messages.append("Esperando por los enlaces de las carreras (nuevo selector)...")
+        new_selector = "li.MeetingSummary__LineWrapper-sc-929fd013-2 a"
+        
         WebDriverWait(driver, 20).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "a.common-race-card-race-link"))
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, new_selector))
         )
         
-        race_elements = driver.find_elements(By.CSS_SELECTOR, "a.common-race-card-race-link")
-        # El resto del código para procesar las carreras... (se mantiene igual)
-        # ... (código omitido por brevedad, es el mismo que antes) ...
+        race_elements = driver.find_elements(By.CSS_SELECTOR, new_selector)
         race_links = [elem.get_attribute('href') for elem in race_elements]
-        log_messages.append(f"Se encontraron {len(race_links)} carreras en total.")
+        log_messages.append(f"✅ ¡ÉXITO! Se encontraron {len(race_links)} carreras.")
 
         if not race_links:
-            log_messages.append("ALERTA: No se encontraron enlaces de carreras.")
+            log_messages.append("ALERTA: No se encontraron enlaces de carreras. El scraper no puede continuar.")
             return [], log_messages
 
         target_link = race_links[0]
         log_messages.append(f"Procesando solo la primera carrera: {target_link}")
         
         driver.get(target_link)
-        log_messages.append("Página de la carrera cargada.")
-        
+        log_messages.append("Página de la carrera cargada. Esperando por los datos de los caballos...")
+
         WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.runner-item")))
         log_messages.append("Contenedores de caballos encontrados.")
 
@@ -85,13 +89,12 @@ def scrape_horse_odds():
             except:
                 continue
         log_messages.append(f"Procesados {len(all_odds_data)} caballos de la primera carrera.")
-
+        
     except Exception as e:
         log_messages.append(f"ERROR CRÍTICO: Ha ocurrido una excepción: {str(e)}")
-        # --- NUEVO PASO: OBTENER EL HTML EN CASO DE ERROR ---
         if driver:
             log_messages.append("\n--- CÓDIGO FUENTE DE LA PÁGINA EN EL MOMENTO DEL ERROR ---\n")
-            log_messages.append(driver.page_source)
+            log_messages.append(driver.page_source[:2000] + "\n... (HTML truncado para brevedad)") # Mostramos solo el principio
     finally:
         if driver:
             log_messages.append("Cerrando el driver de Selenium.")
