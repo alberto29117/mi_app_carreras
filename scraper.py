@@ -1,22 +1,18 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import time
 
 def setup_driver():
-    """Configura el driver de Selenium para ejecutarse en Streamlit Cloud."""
+    """Configura el driver de Selenium para usar el Chromium del sistema."""
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless")  # Esencial para ejecutarse en un servidor sin interfaz gráfica
+    options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920x1080")
     
-    # Instala y gestiona la versión correcta del chromedriver
-    service = Service(ChromeDriverManager().install())
+    # Selenium encontrará automáticamente el chromedriver que instalamos con packages.txt
+    service = Service()
     
     driver = webdriver.Chrome(service=service, options=options)
     return driver
