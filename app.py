@@ -1,36 +1,34 @@
 import streamlit as st
 import pandas as pd
 from scraper import scrape_horse_odds
-
-def get_odds_data():
-    """Llama al scraper y obtiene tanto los datos como los registros."""
-    return scrape_horse_odds()
+from datetime import timedelta
 
 # --- Configuración de la Página ---
 st.set_page_config(
-    page_title="Prueba de Scraper",
-    page_icon="⚙️",
+    page_title="Cuotas de Caballos",
+    page_icon="🏇",
     layout="wide"
 )
 
+# --- FUNCIÓN CON CACHÉ ---
+@st.cache_data(ttl=timedelta(minutes=30))
+def get_odds_data():
+    """Esta función envuelve nuestro scraper para poder cachear sus resultados."""
+    return scrape_horse_odds()
+
 # --- Título y Descripción ---
-st.title('⚙️ Prueba del Scraper de Carreras')
-st.markdown("Pulsa el botón para ejecutar el scraper y ver su registro de actividad.")
+st.title('🏇 Scraper de Cuotas de Carreras')
+st.markdown("Pulsa el botón para obtener las últimas cuotas de _Sporting Life_.")
+st.info("Los datos se actualizan cada 30 minutos. La primera carga del día puede tardar un poco.", icon="ℹ️")
 
-if st.button('Iniciar Scraper'):
-    # Obtenemos tanto los datos como los mensajes de depuración
-    datos, logs = get_odds_data()
-    
-    # --- MOSTRAR EL REGISTRO DE DEPURACIÓN ---
-    st.subheader("Registro de Actividad del Scraper")
-    st.code("\n".join(logs), language='text')
-
-    # --- MOSTRAR LOS DATOS (SI LOS HAY) ---
-    if datos:
-        st.subheader("Resultados Obtenidos")
-        st.success('✅ ¡El scraper ha finalizado y ha obtenido datos!')
-        df = pd.DataFrame(datos)
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.subheader("Resultados Obtenidos")
-        st.error('❌ El scraper ha finalizado pero no ha obtenido ningún dato. Revisa el registro de arriba para ver posibles errores.')
+# --- Botón de Ejecución ---
+if st.button('Obtener Cuotas Ahora'):
+    with st.spinner('Buscando en la web... Este proceso puede tardar hasta un minuto.'):
+        datos = get_odds_data()
+        
+        if datos:
+            df = pd.DataFrame(datos)
+            st.success('¡Datos obtenidos con éxito!')
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.error('No se pudieron obtener los datos. Inténtalo de nuevo más tarde.')
